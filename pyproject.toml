@@ -1,0 +1,21 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "quantumsimulationlib"
+version = "0.0.10"
+authors = [
+  { name="Vytis Krupovnickas", email="vytis000@gmail.com" },
+]
+description = "This package contains a library of methods and classes related to quantum computing simulations."
+readme = "README.md"
+requires-python = ">=3.9"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+Homepage = "https://github.com/Vytis-K/QuantumSimulationLib"
