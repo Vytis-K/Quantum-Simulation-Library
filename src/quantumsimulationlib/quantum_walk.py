@@ -123,9 +123,9 @@ def animate_quantum_walk(qw):
     plt.show()
 
 def on_coin_change(change):
-    # Example of changing the coin operation
-    if change == 'Hadamard':
-        qw.coin_operation = qw.default_coin_operation('Hadamard')
-    elif change == 'Grover':
-        qw.coin_operation = qw.default_coin_operation('Grover')
-    animate_quantum_walk(qw)
+    if change in ['Hadamard', 'Grover', 'Fourier']:
+        qw.coin_type = change
+        qw.coin_operation = qw.default_coin_operation()
+        animate_quantum_walk(qw)
+    else:
+        print("Unsupported coin type")
