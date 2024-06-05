@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "quantumsimulationlib"
-version = "0.0.10"
+version = "0.0.11"
 authors = [
   { name="Vytis Krupovnickas", email="vytis000@gmail.com" },
 ]

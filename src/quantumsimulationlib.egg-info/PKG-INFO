@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: quantumsimulationlib
-Version: 0.0.10
+Version: 0.0.11
 Summary: This package contains a library of methods and classes related to quantum computing simulations.
 Home-page: https://github.com/Vytis-K/QuantumSimulationLib
 Author: Vytis Krupovnickas
@@ -15,6 +15,10 @@ License-File: LICENSE
 
 # Quantum Simulation Package
 
-This is a quantum simulation package. You can use
-[GitHub-flavored Markdown](https://guides.github.com/features/mastering-markdown/)
-to write your content.
+This is a quantum simulation package. Currently a work in progress.
+
+Provides quantum walk for Fourier, Grover, and Hadamar coins, as well as visualizations and a basic GUI.
+
+Quantum machine learning, network, entangled and multidimensional quantum computing applications using QSKit.
+
+Has basic outline for machine learning methods and network, as well as multidimensional and higher dimensional walks, as well as entangled walks.

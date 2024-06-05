@@ -2,6 +2,8 @@ import numpy as np
 from qiskit import QuantumCircuit, execute, Aer, ClassicalRegister
 from qiskit.visualization import plot_histogram, circuit_drawer
 from ipywidgets import interact, FloatSlider
+from qisket.quantum_info import process_tomography, ProcessTomographyFitter
+from qiskit.visualization import plot_bloch_multivector
 import matplotlib.pyplot as plt
 
 # Core Components
@@ -52,19 +54,19 @@ class QuantumCircuitLearning:
         return circuit
     
     def cost_function(self, circuit):
-        # This is a placeholder for a proper cost function.
+        # Use the probability of measuring |0> across all qubits
         measurement = self.simulator.measure(circuit, list(range(circuit.num_qubits)))
-        return measurement
+        cost = measurement.get('0' * circuit.num_qubits, 0) / 1000.0
+        return cost
 
-# Visualization and Educational Resources
+# Visualization
 
 def visualize_circuit(circuit):
     print("Circuit Diagram:")
-    print(circuit.draw())
+    print(circuit.draw(output='text'))
 
 def visualize_state(state):
-    # Placeholder for state visualization logic
-    print("Quantum State:", state)
+    plot_histogram(state, title="Quantum State Distribution")
 
 # Main User Interface
 
@@ -84,8 +86,67 @@ class QMLInterface:
         print(results)
         visualize_circuit(circuit)
         plot_histogram(results)
+    
+    def create_parameterized_circuit(self, num_qubits, depth, params):
+        circuit = self.simulator.initialize_state(num_qubits)
+        for layer in range(depth):
+            for qubit in range(num_qubits):
+                # Apply parameterized rotation around the y-axis
+                theta = params[layer * num_qubits + qubit]
+                circuit.ry(theta, qubit)
+            # Entangle qubits in a linear chain
+            for qubit in range(num_qubits - 1):
+                circuit.cx(qubit, qubit + 1)
+        return circuit
 
-# Adding interactivity
+    def calculate_state_fidelity(self, circuit, target_state):
+        job = execute(circuit, self.backend)
+        result = job.result()
+        statevector = result.get_statevector(circuit)
+        # Assuming target_state is given as a statevector
+        fidelity = np.abs(np.dot(np.conjugate(statevector), target_state))**2
+        return fidelity
+
+    def calculate_entanglement_entropy(self, circuit):
+        job = execute(circuit, self.backend)
+        result = job.result()
+        statevector = result.get_statevector(circuit)
+        # Assuming a bipartition of the system for simplicity
+        num_qubits = circuit.num_qubits
+        half_qubits = num_qubits // 2
+        density_matrix = np.outer(statevector, statevector.conju())
+        reduced_density_matrix = np.trace(density_matrix.reshape((2**half_qubits, 2**half_qubits, 2**half_qubits, 2**half_qubits)), axis1=1, axis2=3)
+        eigenvalues = np.linalg.eigvals(reduced_density_matrix)
+        eigenvalues = eigenvalues[eigenvalues > 0]  # Filter out zero eigenvalues
+        entropy = -np.sum(eigenvalues * np.log2(eigenvalues))
+        return entropy
+
+    def perform_process_tomography(self, circuit, qubit):
+        job = execute(process_tomography(circuit, [qubit]), self.backend, shots=1000)
+        result = job.result()
+        fitter = ProcessTomographyFitter(result, circuit, [qubit])
+        process_matrix = fitter.fit(method='lstsq')
+        return process_matrix
+    
+    def interactive_algorithm_development(self):
+        def update_params(*params):
+            circuit = self.simulator.initialize_state(len(params))
+            for i, param in enumerate(params):
+                circuit.rx(param, i)
+            visualize_circuit(circuit)
+            results = self.simulator.measure(circuit, list(range(len(params))))
+            visualize_state(results)
+
+        interact(update_params, params=FloatSlider(min=-np.pi, max=np.pi, step=0.1))
+
+    def visualize_gate_application(self, circuit):
+        job = execute(circuit, self.backend)
+        result = job.result()
+        statevector = result.get_statevector(circuit)
+        plot_bloch_multivector(statevector)
+        plt.show()
+
+# Adding simulation capabilities
 simulator = QuantumSimulator()
 interface = QMLInterface(simulator)
 
@@ -93,5 +154,3 @@ def update_simulation(parameters):
     params = [float(param) for param in parameters.split(",")]
     results, circuit = interface.run_simulation('QuantumCircuitLearning', params)
     interface.display_results(results, circuit)
-
-interact(update_simulation, parameters="0.5,0.5,0.5")

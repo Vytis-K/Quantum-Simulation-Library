@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='quantumsimulationlib',
-    version='0.0.10',
+    version='0.0.11',
     author='Vytis Krupovnickas',
     author_email='vytis000@gmail.com',
     description='A simple quantum computing simulator focusing on quantum walks and machine learning.',

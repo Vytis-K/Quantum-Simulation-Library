@@ -5,9 +5,11 @@ setup.py
 src/quantumsimulationlib/__init__.py
 src/quantumsimulationlib/advanced_quantum_walk.py
 src/quantumsimulationlib/entangled_quantum_walk.py
+src/quantumsimulationlib/multidimensional_quantum_walk.py
 src/quantumsimulationlib/quantum_ml.py
 src/quantumsimulationlib/quantum_walk.py
 src/quantumsimulationlib/quantum_walk_gui.py
+src/quantumsimulationlib/quantum_walk_network.py
 src/quantumsimulationlib/utils.py
 src/quantumsimulationlib/visualization.py
 src/quantumsimulationlib.egg-info/PKG-INFO
