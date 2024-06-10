@@ -155,3 +155,125 @@ class EntangledQuantumWalk:
         # Modify coin operation based on the time step
         if time_step % 5 == 0:
             self.custom_coin = np.array([[np.cos(time_step), np.sin(time_step)], [-np.sin(time_step), np.cos(time_step)]])
+
+    def propagate_entanglement(self):
+        """ Propagate entanglement through the system, modifying entanglement based on local interactions. """
+        # Calculate the phase shift based on the overlap of quantum states between particles
+        for idx in range(2 ** self.num_particles):
+            # Find indices that could potentially be entangled with the current index
+            local_entangled_indices = [i for i in range(2 ** self.num_particles) if i != idx]
+            for partner_idx in local_entangled_indices:
+                # Calculate the overlap using the inner product of quantum states
+                phase_shift = np.vdot(self.position_states[idx], self.position_states[partner_idx])
+                
+                # Only apply entanglement effects if there is significant overlap
+                if np.abs(phase_shift) > 0.1:  # Threshold can be adjusted based on system specifics
+                    # Apply a controlled phase rotation based on the calculated phase shift
+                    # Normalize the phase shift to make it physically meaningful
+                    phase_shift = np.angle(phase_shift)
+                    
+                    # Entangle the states by applying phase shifts
+                    self.position_states[idx] *= np.exp(1j * phase_shift)
+                    self.position_stats[partner_idx] *= np.exp(-1j * phase_shift)
+                    
+                    # Optionally normalize states to ensure overall state normalization
+                    norm_idx = np.linalg.norm(self.position_states[idx])
+                    norm_partner_idx = np.linalg.norm(self.position_states[partner_idx])
+                    self.position_states[idx] /= norm_idx
+                    self.position_states[partner_idx] /= norm_partner_idx
+
+        # Post-entanglement normalization across all states if necessary
+        total_norm = np.linalg.norm(self.position_states.ravel())
+        self.position_states /= total_norm
+
+    def adjust_topology_dynamically(self, adjustment_criteria):
+        """ Adjust the walk's topology dynamically based on the specified criteria. """
+        if adjustment_criteria(self.measure()):
+            # Change to a more connected topology to increase interaction
+            self.topology = 'complete'
+            self.graph = nx.complete_graph(self.num_positions)
+        else:
+            # Revert to a less connected topology to study isolated dynamics
+            self.topology = 'line'
+            self.graph = nx.path_graph(self.num_positions)
+
+    def control_entanglement_temporally(self, control_function, time_steps):
+        """ Temporally control the entanglement based on a control function. """
+        for time_step in range(time_steps):
+            entanglement_control = control_function(time_step)
+            for idx in range(2 ** self.num_particles):
+                # Apply phase modulation based on the control function
+                self.position_states[idx] *= np.exp(1j * entanglement_control)
+
+    def manage_quantum_interference(self, interference_strategy):
+        """ Manage quantum interference effects using the specified strategy. """
+        if interference_strategy == 'destructive':
+            # Apply destructive interference by inverting phases where probabilities are high
+            high_probability_indices = self.measure() > 0.1  # Threshold for high probability
+            for idx, high_prob in np.ndenumerate(high_probability_indices):
+                if high_prob:
+                    self.position_states[:, idx] *= -1
+
+    def measurement_driven_walk(self):
+        """ Adjust the quantum walk based on real-time measurement outcomes. """
+        measurement_results = self.measure()
+        for idx, probability in np.ndenumerate(measurement_results):
+            if probability > 0.05:  # Threshold to trigger a path adjustment
+                # Apply a local coin flip to change direction based on measurement
+                self.position_states[:, idx] = np.dot(np.array([[0, 1], [1, 0]]), self.position_states[:, idx])
+
+    def entanglement_filtering(self, filter_function):
+        """ Apply a filter to selectively adjust entanglement based on a user-defined function. """
+        for idx in range(2 ** self.num_particles):
+            for partner_idx in range(idx + 1, 2 ** self.num_particles):
+                # Compute the degree of entanglement via an overlap measure or other metric
+                entanglement_measure = np.abs(np.vdot(self.position_states[idx], self.position_states[partner_idx]))
+                # Apply the filter function which modifies the state based on the entanglement measure
+                adjustment_factor = filter_function(entanglement_measure)
+                self.position_states[idx] *= adjustment_factor
+                self.position_states[partner_idx] *= adjustment_factor
+
+        # Normalize the states after filtering
+        self.position_states /= np.linalg.norm(self.position_states)
+
+    def dynamic_entanglement_generation(self, control_sequence):
+        """ Dynamically generate entanglement based on a sequence of control operations. """
+        for control in control_sequence:
+            particles, operation_type, parameters = control
+            if operation_type == 'CNOT':
+                # Example: Apply a CNOT-like operation based on control parameters
+                control_qubit, target_qubit = particles
+                # Simulate CNOT by conditional phase flip
+                self.position_states[1 << target_qubit] += self.position_states[1 << control_qubit] * parameters.get('phase', 1)
+            elif operation_type == 'SWAP':
+                # Swap positions in the superposition state
+                self.position_states[1 << particles[0]], self.position_states[1 << particles[1]] = \
+                    self.position_states[1 << particles[1]], self.position_states[1 << particles[0]]
+
+        # Normalize the quantum state after applying dynamic entanglement
+        self.position_states /= np.linalg.norm(self.position_states)
+
+    def simulate_decoherence(self, decoherence_rate):
+        """ Simulate the effect of decoherence on the entangled quantum states. """
+        for idx in range(2 ** self.num_particles):
+            # Apply decoherence effects randomly based on the decoherence rate
+            if np.random.rand() < decoherence_rate:
+                # Random phase and amplitude damping
+                phase_noise = np.exp(1j * np.random.normal(0, 0.1))
+                amplitude_damping = np.exp(-np.random.rand() * 0.05)
+                self.position_states[idx] *= phase_noise * amplitude_damping
+
+        # Normalize to maintain a valid quantum state
+        self.position_states /= np.linalg.norm(self.position_states)
+
+    def entanglement_based_measurement(self):
+        """ Measure the quantum state using an entanglement-based protocol. """
+        measurement_results = {}
+        for idx in range(2 ** self.num_particles):
+            # Measure each state vector individually
+            state_vector = self.position_states[idx]
+            probabilities = np.abs(state_vector)**2
+            measurement_outcome = np.random.choice(len(probabilities), p=probabilities)
+            measurement_results[idx] = measurement_outcome
+
+        return measurement_results

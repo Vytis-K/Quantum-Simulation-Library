@@ -49,22 +49,33 @@ class QuantumWalk:
             raise ValueError("Unsupported default coin type")
 
     def apply_coin(self):
-        if self.coin_type == 'Hadamard':
-            H = np.array([[1, 1], [1, -1]]) / np.sqrt(2)
-        elif self.coin_type == 'Grover':
-            G = 2 * np.full((2, 2), 0.5) - np.eye(2)
-        elif self.coin_type == 'Fourier':
-            F = np.array([[1, 1], [1, -1j]]) / np.sqrt(2)
-        else:
-            raise ValueError("Unsupported coin type")
-        
-        self.position_states = np.apply_along_axis(lambda x: np.dot(locals()[self.coin_type], x), 0, self.position_states)
+        coins = {
+            'Hadamard': np.array([[1, 1], [1, -1]]) / np.sqrt(2),
+            'Grover': 2 * np.full((2, 2), 0.5) - np.eye(2),
+            'Fourier': np.array([[1, 1], [1, -1j]]) / np.sqrt(2)
+        }
 
-    def apply_decoherence(self, rate=0.01):
-        noise = (np.random.rand(*self.position_state.shape) < rate) * np.random.normal(loc=0.0, scale=1.0, size=self.position_state.shape)
-        self.position_state += noise
-        norm = np.sum(np.abs(self.position_state)**2)
-        self.position_state /= np.sqrt(norm)
+        coin = coins.get(self.coin_type)
+        if coin is None:
+            raise ValueError("Unsupported coin type")
+
+        for i in range(self.num_positions):
+            self.position_state[:, i] = np.dot(achievable, self.position_state[:, i])
+
+    def apply_decoherence(self, rate=0.01, model='gaussian'):
+        if model == 'gaussian':
+            noise = np.random.normal(0, rate, self.position_state.shape) + 1j * np.random.normal(0, rate, self.position_state.shape)
+            self.position_state += noise
+        elif model == 'phase':
+            phase_noise = np.exp(1j * np.random.normal(0, rate, self.position_state.shape))
+            self.position_state *= phase_noise
+        elif model == 'amplitude':
+            amplitude_noise = np.random.normal(1, rate, self.position_state.shape)
+            self.position_state *= amplitude_noise
+
+        # Normalize the state vector
+        norm = np.linalg.norm(self.position_state, axis=0)
+        self.position_state /= norm[:, np.newaxis]
 
     def shift(self, boundary='periodic'):
         new_state = np.zeros_like(self.position_state)
@@ -168,52 +179,143 @@ class QuantumWalk:
             qw.set_start_position(change['new'])
             animate_quantum_walk(qw)
 
-# more functions
-def set_graph(self, adjacency_matrix):
-    if not isinstance(adjacency_matrix, np.ndarray) or adjacency_matrix.shape[0] != adjacency_matrix.shape[1]:
-        raise ValueError("Invalid adjacency matrix.")
-    self.adjacency_matrix = adjacency_matrix
-    self.num_positions = adjacency_matrix.shape[0]
-    self.position_state = np.zeros((2, self.num_positions), dtype=complex)
+    # more functions
+    def set_graph(self, adjacency_matrix):
+        if not isinstance(adjacency_matrix, np.ndarray) or adjacency_matrix.shape[0] != adjacency_matrix.shape[1]:
+            raise ValueError("Invalid adjacency matrix.")
+        self.adjacency_matrix = adjacency_matrix
+        self.num_positions = adjacency_matrix.shape[0]
+        self.position_state = np.zeros((2, self.num_positions), dtype=complex)
 
-def graph_shift(self):
-    new_state = np.zeros_like(self.position_state)
-    for i in range(2):
-        new_state[i] = self.adjacency_matrix.dot(self.position_state[i])
-    self.position_state = new_state
+    def graph_shift(self):
+        new_state = np.zeros_like(self.position_state)
+        for i in range(2):
+            new_state[i] = self.adjacency_matrix.dot(self.position_state[i])
+        self.position_state = new_state
 
-def temporal_coin_operation(self, step):
-    if step % 5 == 0:
-        self.coin_type = 'Grover'
-    else:
-        self.coin_type = 'Hadamard'
-    self.apply_coin()
+    def temporal_coin_operation(self, step):
+        if step % 5 == 0:
+            self.coin_type = 'Grover'
+        else:
+            self.coin_type = 'Hadamard'
+        self.apply_coin()
 
-def initialize_multiple_particles(self, positions):
-    if len(positions) > self.num_positions:
-        raise ValueError("More particles than positions available.")
-    self.position_state = np.zeros((2, self.num_positions), dtype=complex)
-    for pos in positions:
-        self.position_state[0, pos] = 1 / np.sqrt(len(positions))
-        self.position_state[1, pos] = 1 / np.sqrt(len(positions))
+    def initialize_multiple_particles(self, positions):
+        if len(positions) > self.num_positions:
+            raise ValueError("More particles than positions available.")
+        self.position_state = np.zeros((2, self.num_positions), dtype=complex)
+        for pos in positions:
+            self.position_state[0, pos] = 1 / np.sqrt(len(positions))
+            self.position_state[1, pos] = 1 / np.sqrt(len(positions))
 
-def manage_interference(self):
-    # Example: reduce interference by randomly applying phase shifts
-    phases = np.exp(1j * np.pi * np.random.rand(self.num_positions))
-    for i in range(2):
-        self.position_state[i] *= phases
+    def manage_interference(self):
+        # Example: reduce interference by randomly applying phase shifts
+        phases = np.exp(1j * np.pi * np.random.rand(self.num_positions))
+        for i in range(2):
+            self.position_state[i] *= phases
 
-def to_density_matrix(self):
-    self.density_matrix = np.tensordot(self.position_state, np.conj(self.position_state), axes=0)
+    def to_density_matrix(self):
+        if not hasattr(self, 'density_matrix'):
+            self.density_matrix = np.outer(self.position_state.flatten(), self.position_state.flatten().conj())
 
-def apply_decoherence_density_matrix(self, rate=0.01):
-    decoherence_matrix = np.eye(self.num_positions) * rate
-    self.density_matrix = (1 - rate) * self.density_matrix + decoherence_matrix * np.trace(self.density_matrix)
+    def apply_decoherence_density_matrix(self, rate=0.01):
+        decoherence_matrix = np.eye(self.num_positions) * rate
+        self.density_matrix = (1 - rate) * self.density_matrix + decoherence_matrix * np.trace(self.density_matrix)
 
-def calculate_fidelity(self, target_state):
-    current_state_vector = self.position_state.flatten()
-    fidelity = np.abs(np.dot(current_optional_vector.conj(), target_state))**2
-    return fidelity
+    def calculate_fidelity(self, target_state):
+        current_state_vector = self.position_state.flatten()
+        fidelity = np.abs(np.dot(current_optional_vector.conj(), target_state))**2
+        return fidelity
 
-def update_boundary_conditions(self, boundary='open'):
-    self.boundary_type = boundary
+    def update_boundary_conditions(self, boundary='open'):
+        if boundary not in ['open', 'periodic', 'reflective']:
+            raise ValueError("Unsupported boundary condition type.")
+        self.boundary_type = boundary
+
+    # oracle function
+    def apply_oracle(self, oracle_function):
+        """ Apply an oracle function to modify the state based on a decision problem. """
+        for i in range(self.num_positions):
+            if oracle_function(i):
+                # Apply a phase flip if the oracle condition is met
+                self.position_state[:, i] *= -1
+
+    # other functions
+    def apply_quantum_fourier_transform(self):
+        """ Apply Quantum Fourier Transform to the position basis states. """
+        from scipy.linalg import dft
+        N = self.num_positions
+        qft_matrix = dft(N, scale='sqrtn')  # Create a QFT matrix using SciPy
+        self.position_state = qft_matrix.dot(self.position_state)
+
+    def amplitude_amplification(self):
+        """ Apply the quantum amplitude amplification, assuming a Grover iteration has been defined. """
+        G = 2 * np.full((2, 2), 1/2) - np.eye(2)  # Grover diffusion operator
+        self.position_state = np.tensordot(G, self.position_state, axes=[1, 0])
+        self.apply_oracle(lambda x: self.position_state[0, x] > 0.1)  # Example condition
+        self.position_state = np.tensordot(G, self.position_state, axes=[1, 0])
+
+    def quantum_walk_search(self, target):
+        """ Perform a quantum walk search for a target position. """
+        steps = int(np.pi * np.sqrt(self.num_positions) / 4)  # Approximation of optimal steps
+        for _ in range(steps):
+            self.apply_coin()
+            self.shift()
+            # Mark the target with a phase flip
+            self.position_state[:, target] *= -1
+            self.apply_coin()  # Inversion about the average
+            self.shift()
+        return np.argmax(np.abs(self.position_state)**2)
+
+    def interact_walkers(self, other_position_state, interaction_strength=0.1):
+        """ Interact this walker's state with another walker's state. """
+        if self.num_positions != other_position_state.shape[1]:
+            raise ValueError("Both walkers must have the same number of positions.")
+        # Simple interaction model: phase shift based on the other walker's state amplitude
+        interaction_phase = np.exp(1j * interaction_strength * np.abs(other_position_state))
+        self.position_state *= interaction_phase
+
+    def prepare_quantum_state(self, angle_distribution):
+        """ Prepare the quantum state with specific angles for superposition. """
+        from numpy import cos, sin
+        for i in range(self.num_positions):
+            theta = angle_distribution[i]
+            self.position_state[0, i] = cos(theta)
+            self.position_state[1, i] = sin(theta)
+
+    def entangle_positions(self, position1, position2):
+        """ Entangle two positions using a controlled NOT gate after Hadamard. """
+        H = np.array([[1, 1], [1, -1]]) / np.sqrt(2)
+        # Apply Hadamard to the first position
+        self.position_state[:, position1] = np.dot(H, self.position_state[:, position1])
+        # CNOT targeting the second position conditioned on the first
+        self.position_state[1, position2] ^= self.position_state[1, position1]
+
+    def continuous_time_step(self, adjacency_matrix, time_step=0.01):
+        """ Evolve the quantum walk using the continuous-time model. """
+        from scipy.linalg import expm
+        # Hamiltonian for the continuous-time quantum walk
+        H = -adjacency_matrix  # Negative of the adjacency matrix as a simple Hamiltonian
+        U = expm(-1j * H * time_step)  # Time evolution operator
+        self.position_state = U.dot(self.position_state)
+
+    def apply_noise_channel(self, noise_type='depolarizing', noise_strength=0.01):
+        """ Apply a quantum noise channel to the quantum state. """
+        from numpy.random import rand
+        if noise_type == 'depolarizing':
+            for i in range(self.num_positions):
+                if rand() < noise_strength:
+                    # Randomize the state
+                    self.position_state[:, i] = np.random.randn(2) + 1j * np.random.randn(2)
+                    self.position_state[:, i] /= np.linalg.norm(self.position_state[:, i])
+
+    def compress_quantum_state(self, compression_ratio=0.5):
+        """ Compress the quantum state to reduce its size by a given ratio. """
+        compressed_size = int(self.num_positions * compression_ratio)
+        new_state = np.zeros((2, compressed_size), dtype=complex)
+        step = self.num_positions // compressed_size
+        for i in range(compressed_size):
+            # Simple compression by averaging over 'step' positions
+            new_state[:, i] = np.mean(self.position_state[:, i*step:(i+1)*step], axis=1)
+        self.num_positions = compressed_reaching
+        self.position_state = new_state
