@@ -94,6 +94,56 @@ class QuantumSimulator:
         # Final state to verify if the target unitary is achieved
         final_state = self.measure(circuit, list(range(qubits)))
         return final_state
+    
+    def apply_qft(self, circuit, num_qubits):
+        """ Apply the Quantum Fourier Transform to the given circuit. """
+        for j in range(num_qubits):
+            circuit.h(j)
+            for k in range(j + 1, num_qubits):
+                circuit.cp(np.pi / 2**(k - j), k, j)
+        # Swap qubits to match the order of QFT output
+        for j in range(num_qubits // 2):
+            circuit.swap(j, num_qubits - j - 1)
+        return circuit
+
+    def visualize_gate_decomposition(self, gate, qubits):
+        """ Visualize the decomposition of a quantum gate. """
+        decomposed_circuit = QuantumCircuit(qubits)
+        decomposed_circuit.append(gate.decompose(), range(qubits))
+        decomposed_circuit.draw('mpl')
+        plt.title('Decomposed Gate Visualization')
+        plt.show()
+
+    def measure_entanglement_fidelity(self, circuit, initial_state):
+        """ Measure the entanglement fidelity of the quantum state. """
+        job = execute(circuit, self.backend)
+        final_state = job.result().get_statevector()
+        fidelity = np.abs(np.dot(initial_state.conj(), final_state))**2  # Corrected line here
+        return fidelity
+
+    def quantum_state_discrimination(self, states, probabilities, measurements):
+        """ Perform quantum state discrimination based on provided measurements. """
+        optimal_measurement = None
+        max_success_probability = 0
+        for measure in measurements:
+            success_probability = sum(prob * np.abs(np.dot(state.conj(), measure))**2 for state, prob in zip(states, probabilities))
+            if success_probability > max_success_probability:
+                max_success_probability = success_probability
+                optimal_measurement = measure
+        return optimal_measurement, max_success_probability
+
+    def optimize_circuit_parameters(self, circuit, target, optimizer=SPSA):
+        """ Optimize circuit parameters to achieve the closest result to the target state. """
+        def objective(params):
+            for i, param in enumerate(params):
+                circuit.rx(param, i)  # Example of setting rotation angles
+            job = execute(circuit, self.backend)
+            result_state = job.result().get_statevector()
+            fidelity = np.abs(np.vdot(target, result_state))**2
+            return 1 - fidelity  # Minimize this value
+
+        optimized_params = optimizer.minimize(objective, circuit.parameters())
+        return optimized_params
 
 # Quantum Gates Module
 
@@ -161,6 +211,77 @@ class QuantumCircuitLearning:
         params = [float(param) for param in parameters.split(",")]
         results, circuit = interface.run_simulation('QuantumCircuitLearning', params)
         interface.display_results(results, circuit)
+
+    def evaluate_parameterized_circuit(self, params_grid, circuit_template, observable):
+        """ Evaluate a parameterized circuit over a grid of parameters to find the optimal set for an observable. """
+        optimal_value = float('inf')  # Assuming minimization; adjust accordingly
+        optimal_params = None
+        for params in params_grid:
+            circuit = circuit_template(params)
+            result = self.simulator.measure_observable(circuit, observable)
+            if result < optimal_value:
+                optimal_value = result
+                optimal_params = params
+        return optimal_params, optimal_value
+
+    def measure_observable(self, circuit, observable):
+        """ Simulate the circuit and measure the observable. """
+        job = execute(circuit, self.simulator.backend)
+        result = job.result()
+        # Calculate expectation value of the observable
+        expectation = np.trace(np.dot(result.get_statevector().conj().T, np.dot(observable, result.get_statevector())))
+        return np.real(expectation)
+
+    def apply_error_mitigation(self, noisy_results):
+        """ Apply a simple error mitigation strategy to improve the fidelity of results from a noisy quantum circuit. """
+        # Placeholder for actual error mitigation logic, potentially using zero-noise extrapolation or probabilistic error cancellation
+        mitigated_results = {key: val * 0.99 for key, val in noisy_results.items()}  # Example mitigation
+        return mitigated_results
+
+    def adaptive_quantum_phase_estimation(self, unitary, initial_phase, tolerance):
+        """ Perform adaptive quantum phase estimation to find the eigenphase of a unitary operator. """
+        phase = initial_phase
+        for precision in np.logspace(-1, -tolerance, num=10):
+            circuit = self.build_phase_estimation_circuit(unitary, phase, precision)
+            measurement = self.simulator.measure(circuit, list(range(circuit.num_qubits)))
+            phase += precision * self.interpret_phase_shift(measurement)
+            phase = phase % (2 * np.pi)  # Keep the phase within the range [0, 2*pi]
+        return phase
+
+    def build_phase_estimation_circuit(self, unitary, initial_phase, precision):
+        """ Build the circuit for phase estimation with a given precision. """
+        qubits = int(np.ceil(np.log2(1 / precision)))  # Number of qubits based on the desired precision
+        circuit = QuantumCircuit(qubits)
+        # Initialize the state and apply the phase estimation circuit elements (simplified)
+        circuit.h(range(qubits))
+        # Assuming 'unitary' is an operation that can be controlled
+        for i in range(qubits):
+            circuit.append(unitary.control(), [i] + list(range(qubits, qubits + unitary.num_qubits)))
+        circuit.append(self.simulator.apply_qft(circuit, qubits).inverse(), range(qubits))
+        return circuit
+
+    def interpret_phase_shift(self, measurement):
+        """ Convert measurement results into a phase shift. """
+        # Simplified interpretation of measurement assuming perfect measurement conditions
+        return int(max(measurement, key=measurement.get), 2) / (2**len(measurement))
+
+    def quantum_support_vector_machine(self, training_data, labels):
+        """ Implement a support vector machine using a quantum kernel. """
+        from qiskit.aqua.algorithms import QSVM
+        from qiskit.aqua.components.feature_maps import SecondOrderExpansion
+
+        feature_map = SecondOrderExpansion(feature_dimension=len(training_data[0]), depth=2)
+        qsvm = QSVM(feature_map, training_data, labels)
+        result = qsvm.run(self.simulator.backend)
+        return result['testing_accuracy'], result['predicted_labels']
+
+    def optimize_circuit_genetic_algorithm(self, target_function, initial_population, generations):
+        """ Optimize quantum circuits using a genetic algorithm to perform a specific quantum task. """
+        from qiskit.aqua.algorithms import EvolutionaryAlgorithm
+
+        optimizer = EvolutionaryAlgorithm(population_size=50, mutation_rate=0.1, fitness_function=target_function)
+        best_circuit, best_fitness = optimizer.run(initial_population, generations)
+        return best_circuit, best_fitness
 
     # Visualization
 
@@ -240,6 +361,87 @@ class QMLInterface:
             visualize_state(results)
 
         interact(update_params, params=FloatSlider(min=-np.pi, max=np.pi, step=0.1))
+
+    def run_batch_simulations(self, algorithm, parameter_sets):
+        """ Run multiple simulations with a batch of different parameters. """
+        results = []
+        for params in parameteric_sets:
+            if algorithm == 'QuantumCircuitLearning':
+                qml = QuantumCircuitLearning(self.simulator)
+                circuit = qml.build_circuit(params)
+                result = qml.cost_function(circuit)
+                results.append((result, circuit))
+        return results
+
+    def interactive_circuit_designer(self):
+        """ Interactive tool for designing quantum circuits and visualizing their execution results. """
+        from IPython.display import display
+        import ipywidgets as widgets
+        
+        gate_choices = widgets.Dropdown(options=['Hadamard', 'Pauli-X', 'CNOT'])
+        position_input = widgets.IntSlider(min=0, max=4, step=1, value=0)
+        apply_button = widgets.Button(description="Apply Gate")
+        
+        circuit = QuantumCircuit(5)  # Example with 5 qubits
+        
+        def on_apply_button_clicked(b):
+            gate_type = gate_choices.value
+            position = position_input.value
+            if gate_type == 'Hadamard':
+                circuit.h(position)
+            elif gate_type == 'Pauli-X':
+                circuit.x(position)
+            elif gate_type == 'CNOT':
+                circuit.cx(position, (position + 1) % 5)  # Example CNOT to next qubit circularly
+            plot_bloch_multivector(circuit)
+        
+        apply_button.on_click(on_apply_button_clicked)
+        display(gate_choices, position_input, apply_button)
+
+    def generate_and_run_experiments(self, objectives, num_experiments):
+        """ Automatically generate and run a set of experiments based on specified objectives. """
+        experiments = []
+        for _ in range(num_experiments):
+            params = np.random.rand(5) * np.pi  # Random parameters for simplicity
+            circuit = QuantumCircuit(5)
+            for idx, param in enumerate(params):
+                circuit.ry(param, idx)  # Applying rotation gates as a placeholder
+            if objectives == 'entanglement':
+                circuit = self.add_entanglement(circuit)
+            experiments.append(circuit)
+        
+        results = []
+        for experiment in experiments:
+            measurement = self.simulator.measure(experiment, list(range(5)))
+            results.append(measurement)
+        return results
+
+    def profile_algorithm(self, algorithm, params, repetitions=100):
+        """ Profile the performance of a quantum algorithm. """
+        durations = []
+        results = []
+        for _ in range(repetitions):
+            start_time = time.time()
+            result = self.run_simulation(algorithm, params)
+            end_time = time.time()
+            durations.append(end_time - start_time)
+            results.append(result)
+        average_duration = np.mean(durations)
+        success_rate = sum(1 for result in results if result['success']) / repetitions
+        return {'average_duration': average_duration, 'success_rate': success_in_space}
+
+    def select_optimal_algorithm(self, task_description):
+        """ Select the most appropriate quantum algorithm based on the task and available resources. """
+        if 'classification' in task_description:
+            return 'QuantumSupportVectorMachine'
+        elif 'optimization' in task_description:
+            return 'QuantumApproximateOptimizationAlgorithm'
+        elif 'sampling' in task_description:
+            return 'QuantumMetropolisSampling'
+        else:
+            return 'QuantumCircuitLearning'
+
+    # Visualization
 
     def visualize_gate_application(self, circuit):
         job = execute(circuit, self.backend)
