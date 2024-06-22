@@ -403,7 +403,7 @@ class EntangledQuantumWalk:
 
     def quantum_error_correction_scheme(self):
         """
-        Implement a simple quantum error correction scheme to protect the walk from errors.
+        Simple quantum error correction scheme to protect the walk from errors.
         """
         # Simple 3-qubit repetition code to correct bit flip errors
         self.entangle_positions(0, 1)

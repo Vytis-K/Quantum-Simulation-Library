@@ -292,12 +292,12 @@ class QuantumWalk:
         self.position_state[1, position2] ^= self.position_state[1, position1]
 
     def continuous_time_step(self, adjacency_matrix, time_step=0.01):
-        """ Evolve the quantum walk using the continuous-time model. """
+        """Evolve the quantum walk using the continuous-time model."""
         from scipy.linalg import expm
         # Hamiltonian for the continuous-time quantum walk
         H = -adjacency_matrix  # Negative of the adjacency matrix as a simple Hamiltonian
         U = expm(-1j * H * time_step)  # Time evolution operator
-        self.position_state = U.dot(self.position_state)
+        self.position_state = U @ self.position_state
 
     def apply_noise_channel(self, noise_type='depolarizing', noise_strength=0.01):
         """ Apply a quantum noise channel to the quantum state. """
@@ -335,7 +335,7 @@ class QuantumWalk:
     def compress_state(self, factor):
         """ Compress the quantum state by a given factor to reduce its size. """
         new_size = max(1, int(self.num_positions / factor))
-        compressed_state = np.zeros((2, new_shape), dtype=complex)
+        compressed_state = np.zeros((2, new_size), dtype=complex)
         for i in range(new_size):
             start = i * factor
             end = min((i + 1) * factor, self.num_positions)
