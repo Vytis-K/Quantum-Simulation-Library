@@ -1,6 +1,5 @@
 import quantumsimulationlib
 
-
 # multi-dimensional quantum walk
 
 # Example Usage

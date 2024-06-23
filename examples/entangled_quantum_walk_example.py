@@ -1,4 +1,3 @@
-# Assuming the EntangledQuantumWalk class is defined in entangled_quantum_walk.py
 from entangled_quantum_walk import EntangledQuantumWalk
 import numpy as np
 import networkx as nx

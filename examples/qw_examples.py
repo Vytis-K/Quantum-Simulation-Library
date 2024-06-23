@@ -3,8 +3,6 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 import plotly.graph_objects as go
 from ipywidgets import interact, FloatSlider, IntSlider, Button
-
-# Assuming the QuantumWalk class is defined in quantum_walk.py
 from quantum_walk import QuantumWalk
 
 # Example 1: Basic Quantum Walk Simulation and Visualization

@@ -1,5 +1,5 @@
 import numpy as np
-from quantum_walk import QuantumWalk  # Ensure this import path is correct based on your package structure
+from quantum_walk import QuantumWalk
 
 def custom_coin(position_state):
     # Example custom coin: X gate (Pauli-X)

@@ -1,4 +1,3 @@
-# Assuming the QuantumWalkOnNetwork class is defined in quantum_walk_network.py
 from quantum_walk_network import QuantumWalkOnNetwork
 import numpy as np
 import networkx as nx
